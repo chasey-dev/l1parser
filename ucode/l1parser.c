@@ -32,6 +32,20 @@ ret_string_and_free(char *str)
     return val;
 }
 
+/* --- Helper: Free str array returned by C API and return ucode array --- */
+static uc_value_t *
+ret_array_and_free(char **arr, size_t count, uc_vm_t *vm)
+{
+    uc_value_t *uc_arr = ucv_array_new(vm);
+    if (arr) {
+        for (size_t i = 0; i < count; i++) {
+            if (arr[i]) ucv_array_push(uc_arr, ucv_string_new(arr[i]));
+        }
+        l1_free_str_array(arr, count);
+    }
+    return uc_arr;
+}
+
 /* --- Resource Destructor --- */
 static void close_ctx(void *ud)
 {
@@ -62,7 +76,9 @@ uc_l1_list(uc_vm_t *vm, size_t nargs)
     
     if (!ctx || !*ctx) err_return(EBADF);
 
-    return ret_string_and_free(l1_list(*ctx));
+    size_t count = 0;
+    char **arr = l1_list(*ctx, &count);
+    return ret_array_and_free(arr, count, vm);
 }
 
 static uc_value_t *
@@ -98,7 +114,9 @@ uc_l1_zone2if(uc_vm_t *vm, size_t nargs)
     if (!ctx || !*ctx) err_return(EBADF);
     if (ucv_type(val) != UC_STRING) err_return(EINVAL);
 
-    return ret_string_and_free(l1_zone2if(*ctx, ucv_string_get(val)));
+    size_t count = 0;
+    char **arr = l1_zone2if(*ctx, ucv_string_get(val), &count);
+    return ret_array_and_free(arr, count, vm);
 }
 
 static uc_value_t *

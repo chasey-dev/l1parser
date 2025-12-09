@@ -19,6 +19,22 @@ static std::string safe_str(const char* s) {
     return s ? std::string(s) : std::string();
 }
 
+static char** vector_to_c_array(const std::vector<std::string>& vec, size_t* count) {
+    *count = vec.size();
+    if (vec.empty()) return nullptr;
+
+    char** arr = (char**)malloc(sizeof(char*) * vec.size());
+    if (!arr) {
+        *count = 0;
+        return nullptr;
+    }
+
+    for (size_t i = 0; i < vec.size(); ++i) {
+        arr[i] = strdup(vec[i].c_str());
+    }
+    return arr;
+}
+
 extern "C" {
 
 L1Context* l1_init() {
@@ -42,6 +58,14 @@ void l1_free(L1Context* ctx) {
     }
 }
 
+void l1_free_str_array(char** arr, size_t count) {
+    if (!arr) return;
+    for (size_t i = 0; i < count; ++i) {
+        if (arr[i]) free(arr[i]);
+    }
+    free(arr);
+}
+
 char* l1_get(L1Context* ctx, const char* dev, const char* key) {
     try {
         if (!ctx) return nullptr;
@@ -49,11 +73,11 @@ char* l1_get(L1Context* ctx, const char* dev, const char* key) {
     } catch (...) { return nullptr; }
 }
 
-char* l1_list(L1Context* ctx) {
+char** l1_list(L1Context* ctx, size_t* count) {
+    if (!ctx || !count) return nullptr;
     try {
-        if (!ctx) return nullptr;
-        return strdup(ctx->inner.list_devs().c_str());
-    } catch (...) { return nullptr; }
+        return vector_to_c_array(ctx->inner.list_devs(), count);
+    } catch (...) { *count = 0; return nullptr; }
 }
 
 char* l1_if2zone(L1Context* ctx, const char* ifname) {
@@ -70,11 +94,11 @@ char* l1_if2dat(L1Context* ctx, const char* ifname) {
     } catch (...) { return nullptr; }
 }
 
-char* l1_zone2if(L1Context* ctx, const char* zone) {
+char** l1_zone2if(L1Context* ctx, const char* zone, size_t* count) {
+    if (!ctx || !count || !zone) return nullptr;
     try {
-        if (!ctx) return nullptr;
-        return ret_str(ctx->inner.zone2if(safe_str(zone)));
-    } catch (...) { return nullptr; }
+        return vector_to_c_array(ctx->inner.zone2if(safe_str(zone)), count);
+    } catch (...) { *count = 0; return nullptr; }
 }
 
 char* l1_if2dbdcidx(L1Context* ctx, const char* ifname) {

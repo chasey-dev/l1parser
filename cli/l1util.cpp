@@ -8,6 +8,13 @@ void usage() {
     exit(1);
 }
 
+void print_vector(const std::vector<std::string>& vec) {
+    for (size_t i = 0; i < vec.size(); ++i) {
+        std::cout << vec[i] << (i == vec.size() - 1 ? "" : " ");
+    }
+    std::cout << std::endl;
+}
+
 void print_result(std::optional<std::string> res) {
     if (res.has_value()) {
         std::cout << res.value() << std::endl;
@@ -33,8 +40,8 @@ int main(int argc, char* argv[]) {
     const std::string& cmd = args[0];
 
     if (cmd == "list") {
-        std::cout << parser.list_devs() << std::endl;
-    } 
+        print_vector(parser.list_devs());
+    }
     else if (cmd == "get") {
         if (args.size() != 3) usage();
         print_result(parser.get_prop(args[1], args[2]));
@@ -49,7 +56,7 @@ int main(int argc, char* argv[]) {
     }
     else if (cmd == "zone2if") {
         if (args.size() != 2) usage();
-        print_result(parser.zone2if(args[1]));
+        print_vector(parser.zone2if(args[1]));
     }
     else if (cmd == "if2dbdcidx") {
         if (args.size() != 2) usage();

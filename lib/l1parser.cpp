@@ -200,13 +200,8 @@ std::optional<std::string> L1Parser::get_prop(const std::string& dev, const std:
     return std::nullopt;
 }
 
-std::string L1Parser::list_devs() const {
-    std::string result;
-    for (size_t i = 0; i < ordered_dev_keys_.size(); ++i) {
-        if (i > 0) result += " ";
-        result += ordered_dev_keys_[i];
-    }
-    return result;
+std::vector<std::string> L1Parser::list_devs() const {
+    return ordered_dev_keys_;
 }
 
 std::optional<std::string> L1Parser::if2zone(const std::string& ifname) const {
@@ -235,24 +230,28 @@ std::optional<std::string> L1Parser::if2dbdcidx(const std::string& ifname) const
     return std::nullopt;
 }
 
-std::optional<std::string> L1Parser::zone2if(const std::string& zone) const {
+std::vector<std::string> L1Parser::zone2if(const std::string& zone) const {
+    std::vector<std::string> ifaces;
     for (const auto& pair : dev_map_) {
         const auto& props = pair.second.props;
         auto zit = props.find("nvram_zone");
         if (zit != props.end() && zit->second == zone) {
-            auto get = [&](const char* k) {
+            auto add_if = [&](const char* k) {
                 auto it = props.find(k);
-                return (it != props.end()) ? it->second : "";
+                if (it != props.end() && !it->second.empty()) {
+                    ifaces.push_back(it->second);
+                }
             };
-            // Concatenate all related interface prefixes
-            return std::string(get("main_ifname")) + " " +
-                   get("ext_ifname") + " " +
-                   get("apcli_ifname") + " " +
-                   get("wds_ifname") + " " +
-                   get("mesh_ifname");
+            add_if("main_ifname");
+            add_if("ext_ifname");
+            add_if("apcli_ifname");
+            add_if("wds_ifname");
+            add_if("mesh_ifname");
+
+            return ifaces;
         }
     }
-    return std::nullopt;
+    return ifaces;
 }
 
 std::optional<std::string> L1Parser::idx2if(int idx) const {

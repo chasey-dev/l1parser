@@ -30,11 +30,11 @@ public:
 
     // Core logic getters
     std::optional<std::string> get_prop(const std::string& dev, const std::string& key) const;
-    std::string list_devs() const;
+    std::vector<std::string> list_devs() const;
     std::optional<std::string> if2zone(const std::string& ifname) const;
     std::optional<std::string> if2dat(const std::string& ifname) const;
     std::optional<std::string> if2dbdcidx(const std::string& ifname) const;
-    std::optional<std::string> zone2if(const std::string& zone) const;
+    std::vector<std::string> zone2if(const std::string& zone) const;
     std::optional<std::string> idx2if(int idx) const;
 
     // Additional helpers
