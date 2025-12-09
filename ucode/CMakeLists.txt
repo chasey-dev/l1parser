@@ -18,11 +18,14 @@ include_directories(${ucode_include_dir})
 # include l1parser
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # compiling options refer to ucode src repo
-add_definitions(-Os -Wall -Werror -g3 -std=gnu99)
+add_definitions(-Os -Wall -Werror -g3)
 
 # add l1parser-ucode library, MODULE as a plugin
-add_library(l1parser-ucode MODULE l1parser.c)
+add_library(l1parser-ucode MODULE l1parser.cpp)
 
 # remove 'lib' prefix in .so
 set_target_properties(l1parser-ucode PROPERTIES OUTPUT_NAME l1parser PREFIX "")

@@ -1,15 +1,20 @@
 /*
  * ucode binding for l1parser
  */
+#include "l1parser.hpp"
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <stdlib.h>
+#include <vector>
+#include <string>
+#include <new>      // for std::nothrow
+#include <cstring>  // for strerror
 
 #include "ucode/module.h"
 #include "ucode/platform.h"
-#include "l1parser.h"
+
+// hold cpp objects directly, use RAII
+struct L1Context {
+    L1Parser inner;
+};
 
 static uc_resource_type_t *l1_ctx_type;
 
@@ -18,40 +23,23 @@ static uc_resource_type_t *l1_ctx_type;
     return NULL; \
 } while(0)
 
-/* --- Helper: Free string returned by C API and return ucode string --- */
-static uc_value_t *
-ret_string_and_free(char *str)
-{
-    uc_value_t *val;
-
-    if (!str)
-        return NULL;
-
-    val = ucv_string_new(str);
-    free(str); /* l1parser C API returns malloc'd strings */
-    return val;
-}
-
-/* --- Helper: Free str array returned by C API and return ucode array --- */
-static uc_value_t *
-ret_array_and_free(char **arr, size_t count, uc_vm_t *vm)
-{
-    uc_value_t *uc_arr = ucv_array_new(vm);
-    if (arr) {
-        for (size_t i = 0; i < count; i++) {
-            if (arr[i]) ucv_array_push(uc_arr, ucv_string_new(arr[i]));
-        }
-        l1_free_str_array(arr, count);
-    }
-    return uc_arr;
-}
-
 /* --- Resource Destructor --- */
-static void close_ctx(void *ud)
-{
-    L1Context *ctx = (L1Context *)ud;
-    if (ctx)
-        l1_free(ctx);
+static void close_ctx(void *ud) {
+    L1Context *ctx = reinterpret_cast<L1Context *>(ud);
+    if (ctx) {
+        // delete will call destructor inside L1Parser
+        delete ctx;
+    }
+}
+
+/* --- Helper: Convert std::vector<std::string> to ucode Array --- */
+static uc_value_t *
+vector_to_uc_array(uc_vm_t *vm, const std::vector<std::string>& vec) {
+    uc_value_t *arr = ucv_array_new(vm);
+    for (const auto &str : vec) {
+        ucv_array_push(arr, ucv_string_new(str.c_str()));
+    }
+    return arr;
 }
 
 /* --- Methods --- */
@@ -59,98 +47,112 @@ static void close_ctx(void *ud)
 static uc_value_t *
 uc_l1_get(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
     uc_value_t *dev = uc_fn_arg(0);
     uc_value_t *key = uc_fn_arg(1);
 
     if (!ctx || !*ctx) err_return(EBADF);
     if (ucv_type(dev) != UC_STRING || ucv_type(key) != UC_STRING) err_return(EINVAL);
 
-    return ret_string_and_free(l1_get(*ctx, ucv_string_get(dev), ucv_string_get(key)));
+    return L1_GUARD(({
+        auto res = (*ctx)->inner.get_prop(ucv_string_get(dev), ucv_string_get(key));
+        res.has_value() ? ucv_string_new(res.value().c_str()) : NULL;
+    }));
 }
 
 static uc_value_t *
 uc_l1_list(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
-    
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
     if (!ctx || !*ctx) err_return(EBADF);
 
-    size_t count = 0;
-    char **arr = l1_list(*ctx, &count);
-    return ret_array_and_free(arr, count, vm);
+    return L1_GUARD(vector_to_uc_array(
+        vm, (*ctx)->inner.list_devs()
+    ));
 }
 
 static uc_value_t *
 uc_l1_if2zone(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
     uc_value_t *val = uc_fn_arg(0);
 
     if (!ctx || !*ctx) err_return(EBADF);
     if (ucv_type(val) != UC_STRING) err_return(EINVAL);
 
-    return ret_string_and_free(l1_if2zone(*ctx, ucv_string_get(val)));
+    return L1_GUARD(({
+        auto res = (*ctx)->inner.if2zone(ucv_string_get(val));
+        res.has_value() ? ucv_string_new(res.value().c_str()) : NULL;
+    }));
 }
 
 static uc_value_t *
 uc_l1_if2dat(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
     uc_value_t *val = uc_fn_arg(0);
 
     if (!ctx || !*ctx) err_return(EBADF);
     if (ucv_type(val) != UC_STRING) err_return(EINVAL);
 
-    return ret_string_and_free(l1_if2dat(*ctx, ucv_string_get(val)));
+    return L1_GUARD(({
+        auto res = (*ctx)->inner.if2dat(ucv_string_get(val));
+        res.has_value() ? ucv_string_new(res.value().c_str()) : NULL;
+    }));
 }
 
 static uc_value_t *
 uc_l1_zone2if(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
     uc_value_t *val = uc_fn_arg(0);
 
     if (!ctx || !*ctx) err_return(EBADF);
     if (ucv_type(val) != UC_STRING) err_return(EINVAL);
 
-    size_t count = 0;
-    char **arr = l1_zone2if(*ctx, ucv_string_get(val), &count);
-    return ret_array_and_free(arr, count, vm);
+    return L1_GUARD(vector_to_uc_array(
+        vm, (*ctx)->inner.zone2if(ucv_string_get(val))
+    ));
 }
 
 static uc_value_t *
 uc_l1_if2dbdcidx(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
     uc_value_t *val = uc_fn_arg(0);
 
     if (!ctx || !*ctx) err_return(EBADF);
     if (ucv_type(val) != UC_STRING) err_return(EINVAL);
 
-    return ret_string_and_free(l1_if2dbdcidx(*ctx, ucv_string_get(val)));
+    return L1_GUARD(({
+        auto res = (*ctx)->inner.if2dbdcidx(ucv_string_get(val));
+        res.has_value() ? ucv_string_new(res.value().c_str()) : NULL;
+    }));
 }
 
 static uc_value_t *
 uc_l1_idx2if(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
     uc_value_t *idx = uc_fn_arg(0);
 
     if (!ctx || !*ctx) err_return(EBADF);
     if (ucv_type(idx) != UC_INTEGER) err_return(EINVAL);
 
-    return ret_string_and_free(l1_idx2if(*ctx, (int)ucv_int64_get(idx)));
+    return L1_GUARD(({
+        auto res = (*ctx)->inner.idx2if(ucv_string_get(idx));
+        res.has_value() ? ucv_string_new(res.value().c_str()) : NULL;
+    }));
 }
 
 static uc_value_t *
 uc_l1_close(uc_vm_t *vm, size_t nargs)
 {
-    L1Context **ctx = uc_fn_this("l1parser.context");
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
 
     if (!ctx || !*ctx) return ucv_boolean_new(true);
 
-    l1_free(*ctx);
+    delete *ctx;
     *ctx = NULL;
 
     return ucv_boolean_new(true);
@@ -161,10 +163,15 @@ uc_l1_close(uc_vm_t *vm, size_t nargs)
 static uc_value_t *
 uc_l1_open(uc_vm_t *vm, size_t nargs)
 {
-    L1Context *ctx = l1_init();
+    L1Context *ctx = new (std::nothrow) L1Context();
 
     if (!ctx)
         return NULL;
+
+    if (!ctx->inner.load(L1_DAT_PATH)) {
+        delete ctx;
+        return NULL;
+    }
 
     return ucv_resource_new(l1_ctx_type, ctx);
 }
@@ -199,8 +206,10 @@ static const uc_function_list_t global_fns[] = {
     { "error",          uc_l1_error },
 };
 
-void uc_module_init(uc_vm_t *vm, uc_value_t *scope)
-{
-    uc_function_list_register(scope, global_fns);
-    l1_ctx_type = uc_type_declare(vm, "l1parser.context", ctx_fns, close_ctx);
-}
+extern "C" {
+    void uc_module_init(uc_vm_t *vm, uc_value_t *scope)
+    {
+        uc_function_list_register(scope, global_fns);
+        l1_ctx_type = uc_type_declare(vm, "l1parser.context", ctx_fns, close_ctx);
+    }
+} // extern "C"
