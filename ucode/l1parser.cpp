@@ -8,8 +8,10 @@
 #include <new>      // for std::nothrow
 #include <cstring>  // for strerror
 
-#include "ucode/module.h"
-#include "ucode/platform.h"
+extern "C" {
+    #include "ucode/module.h"
+    #include "ucode/platform.h"
+} // extern "C"
 
 // hold cpp objects directly, use RAII
 struct L1Context {
