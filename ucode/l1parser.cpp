@@ -140,7 +140,7 @@ uc_l1_idx2if(uc_vm_t *vm, size_t nargs)
     if (ucv_type(idx) != UC_INTEGER) err_return(EINVAL);
 
     return L1_GUARD(({
-        auto res = (*ctx)->inner.idx2if(ucv_string_get(idx));
+        auto res = (*ctx)->inner.idx2if((size_t)ucv_int64_get(idx));
         res.has_value() ? ucv_string_new(res.value().c_str()) : NULL;
     }));
 }
