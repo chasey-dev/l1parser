@@ -67,60 +67,44 @@ void l1_free_str_array(char** arr, size_t count) {
 }
 
 char* l1_get(L1Context* ctx, const char* dev, const char* key) {
-    try {
-        if (!ctx) return nullptr;
-        return ret_str(ctx->inner.get_prop(safe_str(dev), safe_str(key)));
-    } catch (...) { return nullptr; }
+    if (!ctx) return nullptr;
+    return L1_GUARD(ret_str(ctx->inner.get_prop(safe_str(dev), safe_str(key))));
 }
 
 char** l1_list(L1Context* ctx, size_t* count) {
     if (!ctx || !count) return nullptr;
-    try {
-        return vector_to_c_array(ctx->inner.list_devs(), count);
-    } catch (...) { *count = 0; return nullptr; }
+    return L1_GUARD(vector_to_c_array(ctx->inner.list_devs(), count));
 }
 
 char* l1_if2zone(L1Context* ctx, const char* ifname) {
-    try {
-        if (!ctx) return nullptr;
-        return ret_str(ctx->inner.if2zone(safe_str(ifname)));
-    } catch (...) { return nullptr; }
+    if (!ctx) return nullptr;
+    return L1_GUARD(ret_str(ctx->inner.if2zone(safe_str(ifname))));
 }
 
 char* l1_if2dat(L1Context* ctx, const char* ifname) {
-    try {
-        if (!ctx) return nullptr;
-        return ret_str(ctx->inner.if2dat(safe_str(ifname)));
-    } catch (...) { return nullptr; }
+    if (!ctx) return nullptr;
+    return L1_GUARD(ret_str(ctx->inner.if2dat(safe_str(ifname))));
 }
 
 char** l1_zone2if(L1Context* ctx, const char* zone, size_t* count) {
     if (!ctx || !count || !zone) return nullptr;
-    try {
-        return vector_to_c_array(ctx->inner.zone2if(safe_str(zone)), count);
-    } catch (...) { *count = 0; return nullptr; }
+    return L1_GUARD(vector_to_c_array(ctx->inner.zone2if(safe_str(zone)), count));
 }
 
 char* l1_if2dbdcidx(L1Context* ctx, const char* ifname) {
-    try {
-        if (!ctx) return nullptr;
-        return ret_str(ctx->inner.if2dbdcidx(safe_str(ifname)));
-    } catch (...) { return nullptr; }
+    if (!ctx) return nullptr;
+    return L1_GUARD(ret_str(ctx->inner.if2dbdcidx(safe_str(ifname))));
 }
 
 char* l1_idx2if(L1Context* ctx, size_t idx) {
-    try {
-        if (!ctx) return nullptr;
-        return ret_str(ctx->inner.idx2if(idx));
-    } catch (...) { return nullptr; }
+    if (!ctx) return nullptr;
+    return L1_GUARD(ret_str(ctx->inner.idx2if(idx)));
 }
 
 /* C API for libiwinfo */
 char* l1_get_chip_id_by_devname(L1Context* ctx, const char* dev) {
-    try {
-        if (!ctx) return nullptr;
-        return ret_str(ctx->inner.get_prop(safe_str(dev), "INDEX"));
-    } catch (...) { return nullptr; }
+    if (!ctx) return nullptr;
+    return L1_GUARD(ret_str(ctx->inner.get_prop(safe_str(dev), "INDEX")));
 }
 
 char* l1_get_chip_id_by_ifname(L1Context* ctx, const char* ifname) {

@@ -65,3 +65,16 @@ private:
 
     static std::optional<std::pair<size_t, std::string>> parse_index_key(const std::string& key);          
 };
+
+// template to catch all exceptions not to propagate to C
+template <typename Func>
+auto l1_run_safe(Func f) -> decltype(f()) {
+    try {
+        return f();
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+#define L1_GUARD(expr) \
+    l1_run_safe([&]() { return (expr); })
