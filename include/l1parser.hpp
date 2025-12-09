@@ -35,7 +35,7 @@ public:
     std::optional<std::string> if2dat(const std::string& ifname) const;
     std::optional<std::string> if2dbdcidx(const std::string& ifname) const;
     std::vector<std::string> zone2if(const std::string& zone) const;
-    std::optional<std::string> idx2if(int idx) const;
+    std::optional<std::string> idx2if(size_t target) const;
 
     // Additional helpers
     const std::unordered_map<std::string, L1Entry>& get_if_map() const { return if_map_; }

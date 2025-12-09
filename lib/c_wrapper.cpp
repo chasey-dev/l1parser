@@ -108,7 +108,7 @@ char* l1_if2dbdcidx(L1Context* ctx, const char* ifname) {
     } catch (...) { return nullptr; }
 }
 
-char* l1_idx2if(L1Context* ctx, int idx) {
+char* l1_idx2if(L1Context* ctx, size_t idx) {
     try {
         if (!ctx) return nullptr;
         return ret_str(ctx->inner.idx2if(idx));

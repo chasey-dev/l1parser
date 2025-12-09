@@ -1,6 +1,8 @@
 #ifndef _MTK_L1PARSER_H
 #define _MTK_L1PARSER_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,7 +22,7 @@ char* l1_if2zone(L1Context* ctx, const char* ifname);
 char* l1_if2dat(L1Context* ctx, const char* ifname);
 char** l1_zone2if(L1Context* ctx, const char* zone, size_t* count);
 char* l1_if2dbdcidx(L1Context* ctx, const char* ifname);
-char* l1_idx2if(L1Context* ctx, int idx);
+char* l1_idx2if(L1Context* ctx, size_t idx);
 
 /* Helper functions for iwinfo */
 char* l1_get_chip_id_by_devname(L1Context* ctx, const char* dev);

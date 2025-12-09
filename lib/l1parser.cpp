@@ -254,9 +254,8 @@ std::vector<std::string> L1Parser::zone2if(const std::string& zone) const {
     return ifaces;
 }
 
-std::optional<std::string> L1Parser::idx2if(int idx) const {
-    if (idx <= 0) return std::nullopt;
-    size_t target = static_cast<size_t>(idx);
+std::optional<std::string> L1Parser::idx2if(size_t target) const {
+    if (target <= 0) return std::nullopt;
     size_t cumulative = 0;
 
     // Find which block matches the sequential index
