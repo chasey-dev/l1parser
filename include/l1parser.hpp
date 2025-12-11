@@ -29,6 +29,7 @@ public:
     bool load(const std::string path);
 
     // Core logic getters
+    const std::unordered_map<std::string, L1Entry>& get_all() const { return dev_map_; }
     std::optional<std::string> get_prop(const std::string& dev, const std::string& key) const;
     std::vector<std::string> list_devs() const;
     std::optional<std::string> if2zone(const std::string& ifname) const;
