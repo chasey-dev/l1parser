@@ -44,6 +44,17 @@ vector_to_uc_array(uc_vm_t *vm, const std::vector<std::string>& vec) {
     return arr;
 }
 
+/* --- Helper: Convert std::unordered_map<std::string, std::string> to ucode Object --- */
+static uc_value_t *
+map_to_uc_object(uc_vm_t *vm, const std::unordered_map<std::string, std::string>& map) {
+    uc_value_t *obj = ucv_object_new(vm);
+    for (const auto &kv : map) {
+        // put k-v pairs into a ucode object 
+        ucv_object_add(obj, kv.first.c_str(), ucv_string_new(kv.second.c_str()));
+    }
+    return obj;
+}
+
 /* --- Methods --- */
 
 static uc_value_t *
@@ -59,6 +70,33 @@ uc_l1_get(uc_vm_t *vm, size_t nargs)
     return L1_GUARD(({
         auto res = (*ctx)->inner.get_prop(ucv_string_get(dev), ucv_string_get(key));
         res.has_value() ? ucv_string_new(res.value().c_str()) : NULL;
+    }));
+}
+
+static uc_value_t *
+uc_l1_get_all(uc_vm_t *vm, size_t nargs) {
+    L1Context **ctx = reinterpret_cast<L1Context **>(uc_fn_this("l1parser.context"));
+    if (!ctx || !*ctx) err_return(EBADF);
+
+    return L1_GUARD(({
+        // root object
+        uc_value_t *root = ucv_object_new(vm);
+        
+        const auto& devs = (*ctx)->inner.get_all();
+
+        // every k-v pairs in all dev maps
+        // here k for dev name, v for L1Entry
+        for (const auto& kv : devs) {
+            const std::string& dev_key = kv.first;      // e.g. "MT7981_1_1"
+            const L1Entry& entry = kv.second;
+
+            // current dev props
+            uc_value_t *child_obj = map_to_uc_object(vm, entry.props);
+
+            // root = { dev_key: {dev_props} }
+            ucv_object_add(root, dev_key.c_str(), child_obj);
+        }
+        root;
     }));
 }
 
@@ -195,6 +233,7 @@ uc_l1_error(uc_vm_t *vm, size_t nargs)
 static const uc_function_list_t ctx_fns[] = {
     { "list",           uc_l1_list },
     { "get",            uc_l1_get },
+    { "getall",        uc_l1_get_all },
     { "if2zone",        uc_l1_if2zone },
     { "if2dat",         uc_l1_if2dat },
     { "zone2if",        uc_l1_zone2if },
